@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -37,7 +37,10 @@ interface SettingsFormProps {
 export function SettingsForm({ profile }: SettingsFormProps) {
   const router = useRouter()
   const { theme, setTheme } = useTheme()
+  const [mounted, setMounted] = useState(false)
   const [avatarUrl, setAvatarUrl] = useState<string | null>(profile.avatar_url)
+
+  useEffect(() => setMounted(true), [])
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
@@ -272,25 +275,28 @@ export function SettingsForm({ profile }: SettingsFormProps) {
         </CardHeader>
         <CardContent>
           <div className="flex flex-col sm:flex-row gap-3">
-            {(['light', 'dark', 'system'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setTheme(t)}
-                className={`flex-1 p-4 rounded-lg border-2 text-left transition-colors ${
-                  theme === t
-                    ? 'border-primary bg-primary/5'
-                    : 'border-border hover:border-muted-foreground/40'
-                }`}
-              >
-                <div className={`w-full h-10 rounded mb-2 ${
-                  t === 'light' ? 'bg-white border' :
-                  t === 'dark' ? 'bg-slate-900' :
-                  'bg-gradient-to-r from-white to-slate-900'
-                }`} />
-                <p className="text-sm font-medium capitalize">{t}</p>
-                {theme === t && <p className="text-xs text-primary mt-0.5">Active</p>}
-              </button>
-            ))}
+            {(['light', 'dark', 'system'] as const).map(t => {
+              const isActive = mounted && theme === t
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTheme(t)}
+                  className={`flex-1 p-4 rounded-lg border-2 text-left transition-colors ${
+                    isActive
+                      ? 'border-primary bg-primary/5'
+                      : 'border-border hover:border-muted-foreground/40'
+                  }`}
+                >
+                  <div className={`w-full h-10 rounded mb-2 ${
+                    t === 'light' ? 'bg-white border' :
+                    t === 'dark' ? 'bg-slate-900' :
+                    'bg-gradient-to-r from-white to-slate-900'
+                  }`} />
+                  <p className="text-sm font-medium capitalize">{t}</p>
+                  {isActive && <p className="text-xs text-primary mt-0.5">Active</p>}
+                </button>
+              )
+            })}
           </div>
         </CardContent>
       </Card>

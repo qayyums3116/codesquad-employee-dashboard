@@ -12,11 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/client'
 import { Profile } from '@/types/database'
 import { getInitials } from '@/lib/utils'
+import { uploadAvatar } from '@/app/settings/actions'
 
 const profileSchema = z.object({
   full_name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -61,39 +61,20 @@ export function SettingsForm({ profile }: SettingsFormProps) {
     }
 
     setUploading(true)
-    const supabase = createClient()
-    const ext = file.name.split('.').pop() ?? 'jpg'
-    const filePath = `${profile.id}/avatar.${ext}`
 
-    const { error: uploadError } = await supabase.storage
-      .from('avatars')
-      .upload(filePath, file, { upsert: true, contentType: file.type })
+    const formData = new FormData()
+    formData.append('file', file)
 
-    if (uploadError) {
-      toast.error('Upload failed: ' + uploadError.message)
+    const result = await uploadAvatar(formData)
+
+    if (result.error) {
+      toast.error(result.error)
       setUploading(false)
       return
     }
 
-    const { data: { publicUrl } } = supabase.storage
-      .from('avatars')
-      .getPublicUrl(filePath)
-
-    // Bust cache by appending a timestamp query param
-    const bustedUrl = `${publicUrl}?t=${Date.now()}`
-
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ avatar_url: publicUrl })
-      .eq('id', profile.id)
-
-    if (updateError) {
-      toast.error('Failed to save avatar: ' + updateError.message)
-      setUploading(false)
-      return
-    }
-
-    setAvatarUrl(bustedUrl)
+    // Bust cache so the new photo loads immediately
+    setAvatarUrl(`${result.url}?t=${Date.now()}`)
     toast.success('Profile picture updated!')
     setUploading(false)
     router.refresh()

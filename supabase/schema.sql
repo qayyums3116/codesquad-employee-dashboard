@@ -230,3 +230,49 @@ CREATE POLICY "notifications_insert_system" ON notifications
 
 CREATE POLICY "notifications_delete_own" ON notifications
   FOR DELETE USING (auth.uid() = user_id);
+
+-- ============================================================
+-- STORAGE: avatars bucket
+-- Run this AFTER enabling Storage in the Supabase dashboard
+-- ============================================================
+
+-- Create the avatars bucket (public so images are readable without auth)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+  'avatars',
+  'avatars',
+  true,
+  5242880,  -- 5 MB
+  ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif']
+)
+ON CONFLICT (id) DO UPDATE SET
+  public = true,
+  file_size_limit = 5242880,
+  allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+
+-- Anyone can read avatars (bucket is public)
+CREATE POLICY "avatars_public_select" ON storage.objects
+  FOR SELECT USING (bucket_id = 'avatars');
+
+-- Authenticated users can upload/replace their own avatar
+-- Path must be: {userId}/avatar.{ext}
+CREATE POLICY "avatars_insert_own" ON storage.objects
+  FOR INSERT TO authenticated
+  WITH CHECK (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+CREATE POLICY "avatars_update_own" ON storage.objects
+  FOR UPDATE TO authenticated
+  USING (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );
+
+CREATE POLICY "avatars_delete_own" ON storage.objects
+  FOR DELETE TO authenticated
+  USING (
+    bucket_id = 'avatars'
+    AND (storage.foldername(name))[1] = auth.uid()::text
+  );

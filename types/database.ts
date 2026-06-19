@@ -1,6 +1,6 @@
 export type Role = 'admin' | 'employee'
 export type TicketPriority = 'Low' | 'Medium' | 'High' | 'Critical'
-export type TicketStatus = 'Open' | 'In Progress' | 'Completed' | 'Cancelled'
+export type TicketStatus = 'Open' | 'In Progress' | 'Completed' | 'Incomplete' | 'Cancelled'
 export type Status = 'active' | 'inactive'
 export type CompletionStatus = 'Completed' | 'In Progress' | 'Blocked'
 export type NotificationType = 'info' | 'success' | 'warning' | 'feedback'

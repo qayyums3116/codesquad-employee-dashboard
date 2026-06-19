@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS tickets (
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')),
-  status TEXT NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'In Progress', 'Completed', 'Cancelled')),
+  status TEXT NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'In Progress', 'Completed', 'Incomplete', 'Cancelled')),
   assigned_to UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   assigned_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
   due_date DATE,

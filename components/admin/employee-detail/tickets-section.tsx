@@ -1,11 +1,11 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { format, parseISO, isPast } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import {
-  Ticket, Star, Pencil, Trash2, ChevronDown, ChevronUp, Loader2, Check, X,
+  Ticket, Star, Pencil, Trash2, ChevronDown, ChevronUp, Loader2, Check, X, AlertTriangle,
 } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -45,9 +45,6 @@ function TicketCard({ ticket, employeeId }: { ticket: TicketType; employeeId: st
   const [feedbackText, setFeedbackText] = useState(ticket.feedback_text ?? '')
   const [feedbackRating, setFeedbackRating] = useState(ticket.feedback_rating ?? 0)
 
-  const isOverdue = ticket.due_date && ticket.status !== 'Completed' && ticket.status !== 'Cancelled'
-    && isPast(parseISO(ticket.due_date))
-
   function handleSaveFeedback() {
     if (!feedbackRating || !feedbackText.trim()) {
       toast.error('Please add a rating and feedback text')
@@ -75,31 +72,29 @@ function TicketCard({ ticket, employeeId }: { ticket: TicketType; employeeId: st
     })
   }
 
+  const isIncomplete = ticket.status === 'Incomplete'
+
   return (
-    <div className="border rounded-lg overflow-hidden">
+    <div className={cn('border rounded-lg overflow-hidden', isIncomplete && 'border-red-200 dark:border-red-900/50')}>
       {/* Header row */}
       <div
-        className="flex flex-wrap items-start gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors"
+        className={cn(
+          'flex flex-wrap items-start gap-3 p-4 cursor-pointer hover:bg-muted/30 transition-colors',
+          isIncomplete && 'bg-red-50/50 dark:bg-red-950/20 hover:bg-red-50 dark:hover:bg-red-950/30',
+        )}
         onClick={() => setExpanded(e => !e)}
       >
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-1">
-            <span className="font-medium text-sm truncate">{ticket.title}</span>
+            {isIncomplete && <AlertTriangle className="h-3.5 w-3.5 text-destructive shrink-0" />}
+            <span className="font-medium text-sm">{ticket.title}</span>
             <Badge variant="outline" className={cn('text-xs shrink-0', getTicketPriorityColor(ticket.priority))}>
               {ticket.priority}
             </Badge>
             <Badge variant="outline" className={cn('text-xs shrink-0', getTicketStatusColor(ticket.status))}>
               {ticket.status}
             </Badge>
-            {isOverdue && (
-              <Badge variant="destructive" className="text-xs shrink-0">Overdue</Badge>
-            )}
           </div>
-          {ticket.due_date && (
-            <p className={cn('text-xs', isOverdue ? 'text-destructive' : 'text-muted-foreground')}>
-              Due {format(parseISO(ticket.due_date), 'MMM dd, yyyy')}
-            </p>
-          )}
         </div>
         <div className="flex items-center gap-1.5 shrink-0" onClick={e => e.stopPropagation()}>
           {ticket.status === 'Completed' && (
@@ -127,7 +122,14 @@ function TicketCard({ ticket, employeeId }: { ticket: TicketType; employeeId: st
       {/* Expanded body */}
       {expanded && (
         <div className="border-t px-4 py-3 bg-muted/10 space-y-3">
-          <p className="text-sm text-muted-foreground leading-relaxed">{ticket.description}</p>
+          <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{ticket.description}</p>
+
+          {isIncomplete && (
+            <div className="flex items-center gap-2 text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              Employee did not action this task — auto-marked Incomplete at end of day.
+            </div>
+          )}
 
           {/* Existing feedback display */}
           {ticket.feedback_rating && !feedbackMode && (
@@ -194,8 +196,19 @@ interface TicketsSectionProps {
 }
 
 export function TicketsSection({ tickets, employeeId }: TicketsSectionProps) {
-  const open = tickets.filter(t => t.status === 'Open' || t.status === 'In Progress')
-  const done = tickets.filter(t => t.status === 'Completed' || t.status === 'Cancelled')
+  // Group tickets by due_date, sorted most recent first
+  const byDate = tickets.reduce<Record<string, TicketType[]>>((acc, t) => {
+    const key = t.due_date ?? 'No Date'
+    if (!acc[key]) acc[key] = []
+    acc[key].push(t)
+    return acc
+  }, {})
+
+  const sortedDates = Object.keys(byDate).sort((a, b) => {
+    if (a === 'No Date') return 1
+    if (b === 'No Date') return -1
+    return b.localeCompare(a) // most recent first
+  })
 
   return (
     <Card>
@@ -203,7 +216,7 @@ export function TicketsSection({ tickets, employeeId }: TicketsSectionProps) {
         <div className="flex items-center justify-between gap-3">
           <CardTitle className="text-sm font-semibold flex items-center gap-2">
             <Ticket className="h-4 w-4 text-primary" />
-            Tickets
+            Daily Tickets
             {tickets.length > 0 && (
               <span className="text-xs font-normal text-muted-foreground">({tickets.length})</span>
             )}
@@ -212,30 +225,35 @@ export function TicketsSection({ tickets, employeeId }: TicketsSectionProps) {
         </div>
       </CardHeader>
 
-      <CardContent className="p-4 space-y-4">
+      <CardContent className="p-4 space-y-5">
         {tickets.length === 0 ? (
           <div className="text-center py-8 text-sm text-muted-foreground">
             No tickets assigned yet. Click "Assign Ticket" to create one.
           </div>
         ) : (
-          <>
-            {open.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Active ({open.length})
-                </p>
-                {open.map(t => <TicketCard key={t.id} ticket={t} employeeId={employeeId} />)}
+          sortedDates.map(dateKey => {
+            const dayTickets = byDate[dateKey]
+            const label = dateKey === 'No Date'
+              ? 'No Date'
+              : format(parseISO(dateKey), 'EEE, MMM dd yyyy')
+            const hasIncomplete = dayTickets.some(t => t.status === 'Incomplete')
+            return (
+              <div key={dateKey} className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <p className={cn(
+                    'text-xs font-semibold uppercase tracking-wide',
+                    hasIncomplete ? 'text-destructive' : 'text-muted-foreground',
+                  )}>
+                    {label}
+                  </p>
+                  {hasIncomplete && <AlertTriangle className="h-3 w-3 text-destructive" />}
+                </div>
+                {dayTickets.map(t => (
+                  <TicketCard key={t.id} ticket={t} employeeId={employeeId} />
+                ))}
               </div>
-            )}
-            {done.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Completed / Cancelled ({done.length})
-                </p>
-                {done.map(t => <TicketCard key={t.id} ticket={t} employeeId={employeeId} />)}
-              </div>
-            )}
-          </>
+            )
+          })
         )}
       </CardContent>
     </Card>

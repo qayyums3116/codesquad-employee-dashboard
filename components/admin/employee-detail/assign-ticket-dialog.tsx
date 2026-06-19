@@ -29,9 +29,11 @@ export function AssignTicketDialog({ employeeId }: { employeeId: string }) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
 
+  const todayStr = new Date().toISOString().split('T')[0]
+
   const { register, handleSubmit, setValue, watch, reset, formState: { errors, isSubmitting } } = useForm<FormData>({
     resolver: zodResolver(schema),
-    defaultValues: { priority: 'Medium', dueDate: '' },
+    defaultValues: { priority: 'Medium', dueDate: todayStr },
   })
 
   const priority = watch('priority')
@@ -90,7 +92,7 @@ export function AssignTicketDialog({ employeeId }: { employeeId: string }) {
             </div>
 
             <div className="space-y-1.5">
-              <Label>Due Date</Label>
+              <Label>Assign for Date</Label>
               <input
                 type="date"
                 {...register('dueDate')}

@@ -142,7 +142,7 @@ export function WeeklySection({ weekStart, weekEnd, tasks, feedbackList, employe
                     {format(parseISO(task.task_date), 'EEE, MMM dd')}
                   </td>
                   <td className="px-4 py-3">
-                    <p className="text-sm line-clamp-2 leading-snug">{task.task_description}</p>
+                    <p className="text-sm leading-snug whitespace-pre-wrap">{task.task_description}</p>
                   </td>
                   <td className="px-4 py-3 text-muted-foreground whitespace-nowrap">{task.hours_worked}h</td>
                   <td className="px-4 py-3">

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { format, startOfWeek, endOfWeek, subDays, parseISO } from 'date-fns'
+import { format, startOfWeek, endOfWeek, subDays } from 'date-fns'
 import { CheckCircle2, Clock, MessageSquare, Star, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -8,9 +8,10 @@ import { StatCard } from '@/components/dashboard/stat-card'
 import { WeeklyTaskChart } from '@/components/dashboard/weekly-task-chart'
 import { RatingTrendChart } from '@/components/dashboard/rating-trend-chart'
 import { QuickTaskForm } from '@/components/tasks/quick-task-form'
+import { TodayTicketCard } from '@/components/employee/today-ticket-card'
 import { getStatusColor, formatDate, formatWeekRange, getRatingColor } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { DailyTask, Feedback } from '@/types/database'
+import { DailyTask, Feedback, Ticket } from '@/types/database'
 
 export default async function EmployeeDashboardPage() {
   const supabase = await createClient()
@@ -22,7 +23,15 @@ export default async function EmployeeDashboardPage() {
   const weekEnd = format(endOfWeek(new Date(), { weekStartsOn: 1 }), 'yyyy-MM-dd')
   const thirtyDaysAgo = format(subDays(new Date(), 30), 'yyyy-MM-dd')
 
-  const [tasksRes, feedbackRes, todayTaskRes] = await Promise.all([
+  // Mark any past tickets that weren't actioned as Incomplete
+  await supabase
+    .from('tickets')
+    .update({ status: 'Incomplete' })
+    .eq('assigned_to', user.id)
+    .in('status', ['Open', 'In Progress'])
+    .lt('due_date', today)
+
+  const [tasksRes, feedbackRes, todayTaskRes, todayTicketRes] = await Promise.all([
     supabase.from('daily_tasks').select('*')
       .eq('employee_id', user.id)
       .gte('task_date', thirtyDaysAgo)
@@ -35,11 +44,16 @@ export default async function EmployeeDashboardPage() {
       .eq('employee_id', user.id)
       .eq('task_date', today)
       .maybeSingle(),
+    supabase.from('tickets').select('*')
+      .eq('assigned_to', user.id)
+      .eq('due_date', today)
+      .maybeSingle(),
   ])
 
   const allTasks = (tasksRes.data ?? []) as DailyTask[]
   const allFeedback = (feedbackRes.data ?? []) as Feedback[]
   const todayTask = (todayTaskRes.data ?? null) as DailyTask | null
+  const todayTicket = (todayTicketRes.data ?? null) as Ticket | null
 
   // Stats
   const weekTasks = allTasks.filter(t => t.task_date >= weekStart && t.task_date <= weekEnd)
@@ -75,6 +89,9 @@ export default async function EmployeeDashboardPage() {
         <h1 className="text-2xl font-bold">My Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">{format(new Date(), 'EEEE, MMMM d, yyyy')}</p>
       </div>
+
+      {/* Today's assigned ticket */}
+      <TodayTicketCard ticket={todayTicket} />
 
       {/* Stat cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

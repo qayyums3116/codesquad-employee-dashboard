@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import {
   LayoutDashboard, CheckSquare, MessageSquare, Users,
-  LogOut, Settings, BarChart3,
+  LogOut, Settings, BarChart3, Ticket,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
@@ -21,6 +21,7 @@ interface NavItem {
 const employeeNav: NavItem[] = [
   { href: '/employee/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/employee/tasks', label: 'My Tasks', icon: CheckSquare },
+  { href: '/employee/tickets', label: 'Tickets', icon: Ticket },
   { href: '/employee/feedback', label: 'Feedback', icon: MessageSquare },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

@@ -1,4 +1,6 @@
 export type Role = 'admin' | 'employee'
+export type TicketPriority = 'Low' | 'Medium' | 'High' | 'Critical'
+export type TicketStatus = 'Open' | 'In Progress' | 'Completed' | 'Cancelled'
 export type Status = 'active' | 'inactive'
 export type CompletionStatus = 'Completed' | 'In Progress' | 'Blocked'
 export type NotificationType = 'info' | 'success' | 'warning' | 'feedback'
@@ -41,6 +43,23 @@ export interface Feedback {
   updated_at: string
   employee?: Profile | null
   admin?: Profile | null
+}
+
+export interface Ticket {
+  id: string
+  title: string
+  description: string
+  priority: TicketPriority
+  status: TicketStatus
+  assigned_to: string
+  assigned_by: string
+  due_date: string | null
+  feedback_text: string | null
+  feedback_rating: number | null
+  created_at: string
+  updated_at: string
+  assignee?: Profile | null
+  assigner?: Profile | null
 }
 
 export interface Notification {
@@ -216,6 +235,66 @@ export type Database = {
           created_at?: string
         }
         Relationships: []
+      }
+      tickets: {
+        Row: {
+          id: string
+          title: string
+          description: string
+          priority: string
+          status: string
+          assigned_to: string
+          assigned_by: string
+          due_date: string | null
+          feedback_text: string | null
+          feedback_rating: number | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          title: string
+          description: string
+          priority?: string
+          status?: string
+          assigned_to: string
+          assigned_by: string
+          due_date?: string | null
+          feedback_text?: string | null
+          feedback_rating?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          title?: string
+          description?: string
+          priority?: string
+          status?: string
+          assigned_to?: string
+          assigned_by?: string
+          due_date?: string | null
+          feedback_text?: string | null
+          feedback_rating?: number | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: 'tickets_assigned_to_fkey'
+            columns: ['assigned_to']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'tickets_assigned_by_fkey'
+            columns: ['assigned_by']
+            isOneToOne: false
+            referencedRelation: 'profiles'
+            referencedColumns: ['id']
+          }
+        ]
       }
     }
     Views: {

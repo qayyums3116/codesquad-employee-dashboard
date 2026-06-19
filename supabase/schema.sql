@@ -232,6 +232,40 @@ CREATE POLICY "notifications_delete_own" ON notifications
   FOR DELETE USING (auth.uid() = user_id);
 
 -- ============================================================
+-- TABLE: tickets
+-- ============================================================
+CREATE TABLE IF NOT EXISTS tickets (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  priority TEXT NOT NULL DEFAULT 'Medium' CHECK (priority IN ('Low', 'Medium', 'High', 'Critical')),
+  status TEXT NOT NULL DEFAULT 'Open' CHECK (status IN ('Open', 'In Progress', 'Completed', 'Cancelled')),
+  assigned_to UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  assigned_by UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  due_date DATE,
+  feedback_text TEXT,
+  feedback_rating INTEGER CHECK (feedback_rating >= 1 AND feedback_rating <= 5),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_tickets_assigned_to ON tickets(assigned_to);
+CREATE INDEX IF NOT EXISTS idx_tickets_status ON tickets(status);
+
+CREATE TRIGGER update_tickets_updated_at
+  BEFORE UPDATE ON tickets
+  FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+
+ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "tickets_select_own"   ON tickets FOR SELECT USING (auth.uid() = assigned_to);
+CREATE POLICY "tickets_select_admin" ON tickets FOR SELECT USING (is_admin());
+CREATE POLICY "tickets_insert_admin" ON tickets FOR INSERT WITH CHECK (is_admin());
+CREATE POLICY "tickets_update_admin" ON tickets FOR UPDATE USING (is_admin());
+CREATE POLICY "tickets_update_own"   ON tickets FOR UPDATE USING (auth.uid() = assigned_to);
+CREATE POLICY "tickets_delete_admin" ON tickets FOR DELETE USING (is_admin());
+
+-- ============================================================
 -- STORAGE: avatars bucket
 -- Run this AFTER enabling Storage in the Supabase dashboard
 -- ============================================================

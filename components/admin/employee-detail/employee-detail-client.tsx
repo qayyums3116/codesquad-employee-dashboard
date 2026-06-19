@@ -12,10 +12,11 @@ import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import Link from 'next/link'
 import { ArrowLeft, Clock, CheckCircle2, AlertCircle, Star } from 'lucide-react'
-import { Profile, DailyTask, Feedback } from '@/types/database'
+import { Profile, DailyTask, Feedback, Ticket } from '@/types/database'
 import { getInitials, getStatusColor } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { WeeklySection } from './weekly-section'
+import { TicketsSection } from './tickets-section'
 
 type Preset = '7d' | '30d' | '3m' | 'all' | 'custom'
 
@@ -39,9 +40,10 @@ interface Props {
   employee: Profile
   tasks: DailyTask[]
   feedbackList: Feedback[]
+  tickets: Ticket[]
 }
 
-export function EmployeeDetailClient({ employee, tasks, feedbackList }: Props) {
+export function EmployeeDetailClient({ employee, tasks, feedbackList, tickets }: Props) {
   const [preset, setPreset] = useState<Preset>('7d')
   const [customFrom, setCustomFrom] = useState('')
   const [customTo, setCustomTo] = useState('')
@@ -251,6 +253,9 @@ export function EmployeeDetailClient({ employee, tasks, feedbackList }: Props) {
           )}
         </CardContent>
       </Card>
+
+      {/* ── TICKETS ── */}
+      <TicketsSection tickets={tickets} employeeId={employee.id} />
 
       {/* ── WEEKLY TASK SECTIONS ── */}
       <div className="space-y-4">
